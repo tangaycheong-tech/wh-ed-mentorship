@@ -4,6 +4,7 @@
 
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import * as bcrypt from "bcryptjs";
 import type { SessionUser, User, UserRole } from "@/types";
 import sql from "./db";
 
@@ -69,14 +70,12 @@ export async function registerUser(data: {
   name: string;
   role: UserRole;
 }): Promise<{ success: boolean; user?: User; error?: string }> {
-  const { hashSync } = await import("bcryptjs");
-
   const existing = await sql`SELECT id FROM users WHERE email = ${data.email}` as any[];
   if (existing.length > 0) {
     return { success: false, error: "A user with this email already exists" };
   }
 
-  const passwordHash = hashSync(data.password, 12);
+  const passwordHash = bcrypt.hashSync(data.password, 12);
   const rows = await sql`
     INSERT INTO users (email, password_hash, name, role)
     VALUES (${data.email}, ${passwordHash}, ${data.name}, ${data.role})
@@ -91,8 +90,6 @@ export async function loginUser(data: {
   email: string;
   password: string;
 }): Promise<{ success: boolean; user?: User; error?: string }> {
-  const { compareSync } = await import("bcryptjs");
-
   const rows = await sql`SELECT id, email, password_hash, name, role, avatar_url, bio, created_at, updated_at FROM users WHERE email = ${data.email}` as any[];
 
   if (rows.length === 0) {
@@ -100,7 +97,7 @@ export async function loginUser(data: {
   }
 
   const row = rows[0] as User & { password_hash: string };
-  if (!compareSync(data.password, row.password_hash)) {
+  if (!bcrypt.compareSync(data.password, row.password_hash)) {
     return { success: false, error: "Invalid email or password" };
   }
 
