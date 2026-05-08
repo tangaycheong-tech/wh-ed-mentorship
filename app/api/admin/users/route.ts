@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import sql from "@/lib/db";
+import * as bcrypt from "bcryptjs";
 
 export async function GET() {
   const session = await getSession();
@@ -30,8 +31,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ success: false, error: "Password min 8 chars" }, { status: 400 });
   }
 
-  const { hashSync } = await import("bcryptjs");
-  const passwordHash = hashSync(password, 12);
+  const passwordHash = bcrypt.hashSync(password, 12);
 
   try {
     const users = await sql`

@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth";
 import sql from "@/lib/db";
 import type { User } from "@/types";
+import * as bcrypt from "bcryptjs";
 
 // GET /api/users — List users (admin only) or search mentors/mentees
 export async function GET(request: NextRequest) {
@@ -106,8 +107,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const { hashSync } = await import("bcryptjs");
-    const passwordHash = hashSync(password, 12);
+    const passwordHash = bcrypt.hashSync(password, 12);
 
     const existing = await sql`SELECT id FROM users WHERE email = ${email}` as any[];
     if (existing.length > 0) {
