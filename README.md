@@ -100,3 +100,4 @@ lib/
 types/
   index.ts          # TypeScript types
 ```
+# Vercel deployment trigger
