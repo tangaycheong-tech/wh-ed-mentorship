@@ -21,15 +21,17 @@ async function getPool(): Promise<Pool> {
   const url = new URL(DATABASE_URL);
   const rawHostname = url.hostname;
 
-  // Handle IPv6 addresses (hostnames like [::1] or [2406:...])
-  if (rawHostname.startsWith("[")) {
-    // IPv6 address in brackets — pg supports this natively, no DNS lookup needed
+  // Handle IPv6 addresses
+  // Brackets like [::1] or [2406:...] — pg supports this natively
+  // Also bare IPv6 (colons but no brackets) — detect by checking if it contains ':'
+  const isIPv6 = rawHostname.startsWith("[") || rawHostname.includes(":");
+  if (isIPv6) {
     _pool = new Pool({
       connectionString: DATABASE_URL,
       ssl: { rejectUnauthorized: false },
       max: 10,
       idleTimeoutMillis: 30000,
-      connectionTimeoutMillis: 5000,
+      connectionTimeoutMillis: 15000,
     });
     return _pool;
   }
@@ -45,7 +47,7 @@ async function getPool(): Promise<Pool> {
     ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 5000,
+    connectionTimeoutMillis: 15000,
   });
 
   return _pool;
