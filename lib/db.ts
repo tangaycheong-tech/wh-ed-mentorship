@@ -20,8 +20,12 @@ async function getPool(): Promise<Pool> {
   const url = new URL(DATABASE_URL);
   const rawHostname = url.hostname;
 
-  // Check if this is an IPv6 address (brackets like [::1] or [2406:...] or bare IPv6 with colons)
-  const isIPv6 = rawHostname.startsWith("[") || rawHostname.includes(":");
+  // Check if this is an IPv6 address
+  // IPv6 addresses contain colons but are NOT hostnames like .co, .com, etc.
+  // We detect IPv6 by checking if it starts with [ (bracketed) OR if it matches IPv6 pattern
+  // A real IPv6 will have 2+ colons and not contain common TLD suffixes like .co, .com
+  const isIPv6 = (rawHostname.startsWith("[") && rawHostname.endsWith("]")) ||
+                 (/^[0-9a-fA-F]{1,4}(:[0-9a-fA-F]{1,4}){2,7}$/.test(rawHostname) && rawHostname.includes(":"));
 
   let poolConfig: ConstructorParameters<typeof Pool>[0];
 
