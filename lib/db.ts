@@ -4,11 +4,13 @@
 // ============================================================
 
 import { Pool } from "pg";
+import { lookup } from "dns/promises";
+import { URL } from "url";
 
 // Lazy singleton — only initialized on first use, not at module load
 let _pool: Pool | null = null;
 
-function getPool(): Pool {
+async function getPool(): Promise<Pool> {
   if (_pool) return _pool;
 
   const DATABASE_URL = process.env.DATABASE_URL;
@@ -16,8 +18,15 @@ function getPool(): Pool {
     throw new Error("DATABASE_URL environment variable is not set");
   }
 
+  // Force IPv4 lookup to avoid IPv6 issues on Render/Cloudflare
+  const url = new URL(DATABASE_URL);
+  const ipv4 = await lookup(url.hostname, { family: 4 }).catch(() => null);
+  if (ipv4 && ipv4.address) {
+    url.hostname = ipv4.address;
+  }
+
   _pool = new Pool({
-    connectionString: DATABASE_URL,
+    connectionString: url.toString(),
     ssl: {
       rejectUnauthorized: false,
     },
@@ -36,7 +45,7 @@ export async function query<T = Record<string, unknown>>(
   strings: TemplateStringsArray | string,
   ...values: unknown[]
 ): Promise<T[]> {
-  const pool = getPool();
+  const pool = await getPool();
 
   let text: string;
   let params: unknown[];
