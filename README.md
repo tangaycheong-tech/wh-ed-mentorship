@@ -104,3 +104,4 @@ types/
 # Vercel IPv6 deploy
 # Vercel IP deploy
 # IPv6 brackets deploy
+# redeploy with new DB
