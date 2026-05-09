@@ -1,7 +1,9 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  serverExternalPackages: ["@neondatabase/serverless"],
+  experimental: {
+    serverComponentsExternalPackages: ["@neondatabase/serverless"],
+  },
   webpack: (config, { isServer }) => {
     // Force resolution of @ alias in server components (fixes Render Node 24 bundling)
     config.resolve.alias = {
