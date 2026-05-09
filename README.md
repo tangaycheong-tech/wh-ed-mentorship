@@ -103,3 +103,4 @@ types/
 # Vercel deployment trigger
 # Vercel IPv6 deploy
 # Vercel IP deploy
+# IPv6 brackets deploy
