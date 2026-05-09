@@ -18,18 +18,31 @@ async function getPool(): Promise<Pool> {
     throw new Error("DATABASE_URL environment variable is not set");
   }
 
-  // Force IPv4 lookup to avoid IPv6 issues on Render/Cloudflare
   const url = new URL(DATABASE_URL);
-  const ipv4 = await lookup(url.hostname, { family: 4 }).catch(() => null);
+  const rawHostname = url.hostname;
+
+  // Handle IPv6 addresses (hostnames like [::1] or [2406:...])
+  if (rawHostname.startsWith("[")) {
+    // IPv6 address in brackets — pg supports this natively, no DNS lookup needed
+    _pool = new Pool({
+      connectionString: DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+    return _pool;
+  }
+
+  // Force IPv4 lookup to avoid IPv6 issues on Render/Cloudflare
+  const ipv4 = await lookup(rawHostname, { family: 4 }).catch(() => null);
   if (ipv4 && ipv4.address) {
     url.hostname = ipv4.address;
   }
 
   _pool = new Pool({
     connectionString: url.toString(),
-    ssl: {
-      rejectUnauthorized: false,
-    },
+    ssl: { rejectUnauthorized: false },
     max: 10,
     idleTimeoutMillis: 30000,
     connectionTimeoutMillis: 5000,
