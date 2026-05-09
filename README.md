@@ -101,3 +101,4 @@ types/
   index.ts          # TypeScript types
 ```
 # Vercel deployment trigger
+# Vercel IPv6 deploy
