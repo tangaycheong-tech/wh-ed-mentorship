@@ -1,45 +1,68 @@
 // ============================================================
-// lib/db.ts — Neon serverless database client (Supabase PG)
-// Lazy initialization to avoid build-time connection attempts
+// lib/db.ts — Direct pg Pool client for Supabase PostgreSQL
+// Using pg directly to avoid Next.js webpack mangling issues
 // ============================================================
 
-import { neon, neonConfig } from "@neondatabase/serverless";
+import { Pool } from "pg";
 
 // Lazy singleton — only initialized on first use, not at module load
-let _sql: ReturnType<typeof neon> | null = null;
+let _pool: Pool | null = null;
 
-function getSql() {
-  if (_sql) return _sql;
+function getPool(): Pool {
+  if (_pool) return _pool;
 
   const DATABASE_URL = process.env.DATABASE_URL;
   if (!DATABASE_URL) {
     throw new Error("DATABASE_URL environment variable is not set");
   }
 
-  // WebSocket polyfill only needed in Node.js (not edge)
-  if (typeof window === "undefined" && typeof WebSocket !== "undefined") {
-    try {
-      neonConfig.webSocketConstructor = WebSocket as unknown as typeof globalThis.WebSocket;
-    } catch {
-      // Ignore if not available
-    }
-  }
+  _pool = new Pool({
+    connectionString: DATABASE_URL,
+    ssl: {
+      rejectUnauthorized: false,
+    },
+    max: 10,
+    idleTimeoutMillis: 30000,
+    connectionTimeoutMillis: 5000,
+  });
 
-  _sql = neon(DATABASE_URL);
-  return _sql;
+  return _pool;
 }
 
-// Export a proxy that lazily initializes the client
-const sql = new Proxy({} as ReturnType<typeof neon>, {
-  get(_target, prop) {
-    const client = getSql();
-    const value = (client as unknown as Record<string, unknown>)[prop as string];
-    if (typeof value === "function") {
-      return value.bind(client);
-    }
-    return value;
-  },
-});
+// Query helper — mimics neon tagged template behavior
+// Accepts either: sql`SELECT * FROM users` (with embedded values)
+// Or: query("SELECT * FROM users WHERE id = $1", [id]) for dynamic strings
+export async function query<T = Record<string, unknown>>(
+  strings: TemplateStringsArray | string,
+  ...values: unknown[]
+): Promise<T[]> {
+  const pool = getPool();
 
-export { sql };
-export default sql;
+  let text: string;
+  let params: unknown[];
+
+  if (typeof strings === "string") {
+    // Called as regular function: query("SELECT * FROM users WHERE id = $1", [id])
+    text = strings;
+    params = Array.isArray(values[0]) ? values[0] : values;
+  } else {
+    // Called as tagged template: sql`SELECT * FROM users WHERE id = ${id}`
+    text = strings.reduce((acc, str, i) => {
+      const paramIndex = i + 1;
+      const param = values[i] !== undefined ? `$${paramIndex}` : "";
+      return acc + str + param;
+    }, "");
+    params = values;
+  }
+
+  const result = await pool.query(text, params);
+  return result.rows as T[];
+}
+
+// Backward-compatible sql alias (used as tagged template)
+export const sql = query;
+
+// Export pool for direct use (e.g., transactions)
+export { getPool as pool };
+
+export default query;

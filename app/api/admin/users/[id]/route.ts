@@ -34,7 +34,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
   const setStr = cols.join(", ");
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = (await sql(`UPDATE users SET ${setStr} WHERE id = $${i} RETURNING id, email, name, role, created_at, updated_at`, vals as any)) as any[];
+  const result = (await sql(`UPDATE users SET ${setStr} WHERE id = $${i} RETURNING id, email, name, role, created_at, updated_at`, vals)) as any[];
   if (result.length === 0) return NextResponse.json({ success: false, error: "Not found" }, { status: 404 });
 
   return NextResponse.json({ success: true, data: result[0] });
