@@ -4,7 +4,6 @@
 // ============================================================
 
 import { Pool } from "pg";
-import { lookup } from "dns/promises";
 import { URL } from "url";
 
 // Lazy singleton — only initialized on first use, not at module load
@@ -21,35 +20,37 @@ async function getPool(): Promise<Pool> {
   const url = new URL(DATABASE_URL);
   const rawHostname = url.hostname;
 
-  // Handle IPv6 addresses
-  // Brackets like [::1] or [2406:...] — pg supports this natively
-  // Also bare IPv6 (colons but no brackets) — detect by checking if it contains ':'
+  // Check if this is an IPv6 address (brackets like [::1] or [2406:...] or bare IPv6 with colons)
   const isIPv6 = rawHostname.startsWith("[") || rawHostname.includes(":");
+
+  let poolConfig: ConstructorParameters<typeof Pool>[0];
+
   if (isIPv6) {
-    _pool = new Pool({
+    // IPv6: use host/port params (connectionString with brackets fails DNS lookup)
+    const ipv6 = rawHostname.replace(/^\[|\]$/g, ""); // strip brackets
+    poolConfig = {
+      host: ipv6,
+      port: parseInt(url.port || "5432", 10),
+      user: url.username,
+      password: decodeURIComponent(url.password),
+      database: url.pathname.replace(/^\//, ""),
+      ssl: { rejectUnauthorized: false },
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 15000,
+    };
+  } else {
+    // IPv4 / hostname: use connectionString
+    poolConfig = {
       connectionString: DATABASE_URL,
       ssl: { rejectUnauthorized: false },
       max: 10,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 15000,
-    });
-    return _pool;
+    };
   }
 
-  // Force IPv4 lookup to avoid IPv6 issues on Render/Cloudflare
-  const ipv4 = await lookup(rawHostname, { family: 4 }).catch(() => null);
-  if (ipv4 && ipv4.address) {
-    url.hostname = ipv4.address;
-  }
-
-  _pool = new Pool({
-    connectionString: url.toString(),
-    ssl: { rejectUnauthorized: false },
-    max: 10,
-    idleTimeoutMillis: 30000,
-    connectionTimeoutMillis: 15000,
-  });
-
+  _pool = new Pool(poolConfig);
   return _pool;
 }
 
