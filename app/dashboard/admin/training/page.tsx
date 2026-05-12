@@ -134,7 +134,7 @@ export default function AdminTrainingPage() {
 
   // Load module list
   const loadModules = useCallback(() => {
-    fetch("/api/admin/training")
+    fetch("/ed_mentor/api/admin/training")
       .then(r => r.json())
       .then(d => {
         if (Array.isArray(d)) setModules(d);
@@ -150,7 +150,7 @@ export default function AdminTrainingPage() {
   useEffect(() => {
     if (!selectedSlug) { setModuleData(null); setForm({ pre_read_content: "", speaker_notes: "", trainer_notes: "" }); return; }
     setLoading(true);
-    fetch(`/api/admin/training/${selectedSlug}`)
+    fetch(`/ed_mentor/api/admin/training/${selectedSlug}`)
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data) {
@@ -170,7 +170,7 @@ export default function AdminTrainingPage() {
     if (!selectedSlug) return;
     setSaving(true);
     setStatus(null);
-    const res = await fetch(`/api/admin/training/${selectedSlug}`, {
+    const res = await fetch(`/ed_mentor/api/admin/training/${selectedSlug}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(form),
