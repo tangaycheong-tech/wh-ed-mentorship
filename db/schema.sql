@@ -120,7 +120,29 @@ CREATE TABLE IF NOT EXISTS goals (
     CHECK (status IN ('not_started', 'in_progress', 'completed', 'abandoned')),
   progress INT NOT NULL DEFAULT 0 CHECK (progress >= 0 AND progress <= 100),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ---- Training Modules (mirrors deployed DB schema) -------------
+-- NOTE: If you re-run schema.sql against the LOCAL database, this will
+-- sync the local training_modules table to match the deployed schema.
+-- The deployed DB at 127.0.0.1:5432 already has this table with these columns.
+CREATE TABLE IF NOT EXISTS training_modules (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  slug TEXT UNIQUE NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  module_order INT NOT NULL DEFAULT 0,
+  duration_minutes INT,
+  slides_url TEXT,
+  audio_url TEXT,
+  video_url TEXT,
+  notebooklm_guide TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  pre_read_content TEXT,
+  speaker_notes TEXT,
+  trainer_notes TEXT
 );
 
 -- ---- Assignments --------------------------------------------

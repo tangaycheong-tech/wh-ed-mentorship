@@ -141,6 +141,26 @@ export interface Goal {
   updated_at: string;
 }
 
+// ---- Training Modules -------------------------------------------
+
+export interface TrainingModule {
+  id: string;
+  slug: string;
+  title: string;
+  description?: string;
+  module_order: number;
+  duration_minutes?: number;
+  slides_url?: string | null;
+  audio_url?: string | null;
+  video_url?: string | null;
+  notebooklm_guide?: string | null;
+  pre_read_content?: string | null;
+  speaker_notes?: string | null;
+  trainer_notes?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 // ---- Assignments ------------------------------------------------
 
 export type AssignmentStatus = "pending" | "submitted" | "reviewed" | "completed";
